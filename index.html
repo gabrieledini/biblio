@@ -56,14 +56,14 @@
   .toggle button + button{border-left:1px solid var(--phos-deep)}
   .toggle button.on{background:var(--phos);color:#03130b;text-shadow:none;font-weight:700}
   .fields{display:flex;flex-direction:column;gap:8px}
-  input{
+  input[type=search]{
     background:var(--panel);border:1px solid var(--phos-deep);color:var(--phos);
     font:inherit;padding:12px;text-shadow:none;outline:none;width:100%;
   }
-  input:focus{border-color:var(--phos);box-shadow:0 0 8px rgba(84,255,159,.3)}
+  input[type=search]:focus{border-color:var(--phos);box-shadow:0 0 8px rgba(84,255,159,.3)}
   input::placeholder{color:var(--phos-dim);text-shadow:none}
   .chk{display:flex;align-items:center;gap:8px;color:var(--phos-dim);font-size:13px;text-shadow:none;cursor:pointer;user-select:none}
-  .chk input{width:auto;accent-color:var(--phos);cursor:pointer}
+  .chk input{accent-color:var(--phos);cursor:pointer}
   .go{background:var(--phos);color:#03130b;border:0;font:inherit;font-weight:700;padding:12px;width:100%;cursor:pointer;letter-spacing:1px}
   .go:active{transform:translateY(1px)}
   .go:disabled{opacity:.4;cursor:wait}
@@ -106,7 +106,7 @@
 <div class="wrap">
   <header>
     <h1>BIBLIO//TERM</h1>
-    <div class="sub">terminale di ricerca libri &middot; archivio Open Library<span class="blink">_</span></div>
+    <div class="sub">terminale di ricerca libri &middot; archivio Google Books<span class="blink">_</span></div>
   </header>
 
   <div class="bar">
@@ -135,7 +135,7 @@
   <div id="empty" class="empty">Inserisci un termine e premi CERCA.</div>
 
   <footer>
-    Dati: <a href="https://openlibrary.org" target="_blank" rel="noopener">openlibrary.org</a> &middot; nessun tracciamento
+    Dati: <a href="https://books.google.it" target="_blank" rel="noopener">Google Books</a> &middot; nessun tracciamento
   </footer>
 </div>
 
@@ -143,14 +143,14 @@
 (() => {
   "use strict";
   const $ = s => document.querySelector(s);
-  const qT=$("#qTitle"), qA=$("#qAuthor"), goEl=$("#go"),
+  const qT=$("#qTitle"), qA=$("#qAuthor"), goEl=$("#go"), ita=$("#onlyIta"),
         statusEl=$("#status"), resEl=$("#results"), emptyEl=$("#empty"),
         bT=$("#byTitle"), bA=$("#byAuthor"), bB=$("#byBoth"),
         pager=$("#pager"), prevB=$("#prev"), nextB=$("#next"), pageInfo=$("#pageInfo");
 
   const LIMIT = 20;
   let mode = "title";
-  let page = 1, numFound = 0, lastParams = "";
+  let page = 1, numFound = 0, lastQuery = "", lastIta = true;
 
   function setMode(m){
     mode = m;
@@ -170,30 +170,33 @@
     statusEl.classList.toggle("err", !!isErr);
   }
   function esc(s){ return (s||"").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+  function https(u){ return (u||"").replace(/^http:/, "https:"); }
 
-  function buildParams(){
+  function buildQuery(){
     const t = qT.value.trim(), a = qA.value.trim();
-    const p = new URLSearchParams();
-    if((mode==="title"||mode==="both") && t) p.set("title", t);
-    if((mode==="author"||mode==="both") && a) p.set("author", a);
-    if(document.querySelector("#onlyIta").checked) p.set("language", "ita");
-    return p;
+    const parts = [];
+    if((mode==="title"||mode==="both") && t) parts.push("intitle:" + t);
+    if((mode==="author"||mode==="both") && a) parts.push("inauthor:" + a);
+    return parts.join(" ");
   }
 
-  function card(doc){
-    const title = esc(doc.title || "Senza titolo");
-    const authors = Array.isArray(doc.author_name) ? doc.author_name.join(", ") : "Autore sconosciuto";
-    const year = doc.first_publish_year ? `[ ${doc.first_publish_year} ]` : "";
-    const olid = doc.key ? `https://openlibrary.org${doc.key}?lang=it` : "#";
-    const cover = doc.cover_i
-      ? `<img class="cover" loading="lazy" alt="copertina" src="https://covers.openlibrary.org/b/id/${doc.cover_i}-M.jpg">`
+  function card(item){
+    const vi = item.volumeInfo || {};
+    const title = esc(vi.title || "Senza titolo");
+    const authors = Array.isArray(vi.authors) ? vi.authors.join(", ") : "Autore sconosciuto";
+    const year = vi.publishedDate ? `[ ${esc(String(vi.publishedDate).slice(0,4))} ]` : "";
+    let link = vi.infoLink || vi.canonicalVolumeLink || "#";
+    if(link !== "#"){ link = https(link); link += (link.includes("?") ? "&" : "?") + "hl=it"; }
+    const thumb = vi.imageLinks && (vi.imageLinks.thumbnail || vi.imageLinks.smallThumbnail);
+    const cover = thumb
+      ? `<img class="cover" loading="lazy" alt="copertina" src="${https(thumb)}">`
       : `<div class="cover">&#9636;</div>`;
     const el = document.createElement("article");
     el.className = "card";
     el.innerHTML = `
       ${cover}
       <div class="meta">
-        <a class="title" href="${olid}" target="_blank" rel="noopener">${title}</a>
+        <a class="title" href="${link}" target="_blank" rel="noopener">${title}</a>
         <div class="author">di ${esc(authors)}</div>
         <div class="year">${year}</div>
       </div>`;
@@ -215,30 +218,33 @@
     goEl.disabled = true;
     setStatus("> scansione archivio…");
 
-    const p = new URLSearchParams(lastParams);
-    p.set("limit", LIMIT);
-    p.set("page", page);
-    p.set("fields", "key,title,author_name,first_publish_year,cover_i");
-    const url = "https://openlibrary.org/search.json?" + p.toString();
+    const start = (page - 1) * LIMIT;
+    let url = "https://www.googleapis.com/books/v1/volumes"
+      + "?q=" + encodeURIComponent(lastQuery)
+      + "&startIndex=" + start
+      + "&maxResults=" + LIMIT
+      + "&printType=books&country=IT";
+    if(lastIta) url += "&langRestrict=it";
 
     try{
       const r = await fetch(url);
       if(!r.ok) throw new Error("HTTP " + r.status);
       const data = await r.json();
-      const docs = data.docs || [];
-      numFound = data.numFound ?? docs.length;
+      const items = data.items || [];
+      numFound = data.totalItems || 0;
 
-      if(!docs.length){
-        emptyEl.textContent = "Nessun risultato.";
+      if(!items.length){
+        emptyEl.textContent = page > 1 ? "Fine dei risultati." : "Nessun risultato.";
         emptyEl.style.display = "block";
-        setStatus("0 risultati.");
-        numFound = 0; updatePager();
+        setStatus(page > 1 ? "Nessun altro risultato." : "0 risultati.");
+        if(page > 1){ page--; } else { numFound = 0; }
+        updatePager();
         return;
       }
       const frag = document.createDocumentFragment();
-      docs.forEach(d => frag.appendChild(card(d)));
+      items.forEach(it => frag.appendChild(card(it)));
       resEl.appendChild(frag);
-      setStatus(`${docs.length} su questa pagina &middot; ${numFound} totali.`);
+      setStatus(`${items.length} su questa pagina · ~${numFound} totali.`);
       updatePager();
     }catch(e){
       setStatus("Errore di connessione all'archivio. Riprova.", true);
@@ -250,9 +256,10 @@
   }
 
   function newSearch(){
-    const p = buildParams();
-    if(!p.toString()){ setStatus("Inserisci almeno un termine.", true); return; }
-    lastParams = p.toString();
+    const q = buildQuery();
+    if(!q){ setStatus("Inserisci almeno un termine.", true); return; }
+    lastQuery = q;
+    lastIta = ita.checked;
     page = 1;
     fetchPage();
   }
