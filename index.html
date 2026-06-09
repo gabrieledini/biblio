@@ -184,7 +184,7 @@
     const title = esc(doc.title || "Senza titolo");
     const authors = Array.isArray(doc.author_name) ? doc.author_name.join(", ") : "Autore sconosciuto";
     const year = doc.first_publish_year ? `[ ${doc.first_publish_year} ]` : "";
-    const olid = doc.key ? `https://openlibrary.org${doc.key}` : "#";
+    const olid = doc.key ? `https://openlibrary.org${doc.key}?lang=it` : "#";
     const cover = doc.cover_i
       ? `<img class="cover" loading="lazy" alt="copertina" src="https://covers.openlibrary.org/b/id/${doc.cover_i}-M.jpg">`
       : `<div class="cover">&#9636;</div>`;
