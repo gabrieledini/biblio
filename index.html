@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0a1410">
+<title>BIBLIO//TERM</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%230a1410'/%3E%3Ctext x='32' y='46' font-size='40' text-anchor='middle' fill='%2354ff9f' font-family='monospace'%3E%E2%96%88%3C/text%3E%3C/svg%3E">
+<style>
+  :root{
+    --bg:#08110d;
+    --panel:#0c1812;
+    --phos:#54ff9f;
+    --phos-dim:#2e8f5c;
+    --phos-deep:#143524;
+    --amber:#ffcf6b;
+    --warn:#ff6b6b;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{
+    background:var(--bg);
+    color:var(--phos);
+    font-family:'IBM Plex Mono',ui-monospace,'Courier New',monospace;
+    font-size:15px;
+    line-height:1.45;
+    text-shadow:0 0 4px rgba(84,255,159,.45);
+    -webkit-font-smoothing:none;
+    overflow-x:hidden;
+    padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+  body::before{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:9999;
+    background:repeating-linear-gradient(0deg,rgba(0,0,0,0) 0,rgba(0,0,0,0) 2px,rgba(0,0,0,.22) 3px,rgba(0,0,0,0) 4px);
+    mix-blend-mode:multiply;
+  }
+  body::after{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:9998;
+    background:radial-gradient(ellipse at center,transparent 55%,rgba(0,0,0,.55) 100%);
+  }
+  @keyframes flick{0%,100%{opacity:1}50%{opacity:.97}}
+  .wrap{max-width:880px;margin:0 auto;padding:18px 16px 60px;position:relative;z-index:1;animation:flick 6s infinite}
+
+  header{border:1px solid var(--phos-deep);padding:14px 16px;margin-bottom:18px;background:linear-gradient(180deg,var(--panel),transparent)}
+  h1{font-family:'Press Start 2P','IBM Plex Mono',monospace;font-size:18px;margin:0;letter-spacing:1px}
+  .sub{color:var(--phos-dim);font-size:12px;margin-top:8px;text-shadow:none}
+  .blink{animation:bl 1s steps(2) infinite}
+  @keyframes bl{50%{opacity:0}}
+
+  .bar{display:flex;flex-direction:column;gap:10px;margin-bottom:8px}
+  .toggle{display:flex;border:1px solid var(--phos-deep)}
+  .toggle button{
+    flex:1;background:transparent;color:var(--phos-dim);border:0;
+    font:inherit;text-shadow:none;padding:10px 4px;cursor:pointer;letter-spacing:.5px;font-size:13px;
+  }
+  .toggle button + button{border-left:1px solid var(--phos-deep)}
+  .toggle button.on{background:var(--phos);color:#03130b;text-shadow:none;font-weight:700}
+  .fields{display:flex;flex-direction:column;gap:8px}
+  input{
+    background:var(--panel);border:1px solid var(--phos-deep);color:var(--phos);
+    font:inherit;padding:12px;text-shadow:none;outline:none;width:100%;
+  }
+  input:focus{border-color:var(--phos);box-shadow:0 0 8px rgba(84,255,159,.3)}
+  input::placeholder{color:var(--phos-dim);text-shadow:none}
+  .go{background:var(--phos);color:#03130b;border:0;font:inherit;font-weight:700;padding:12px;width:100%;cursor:pointer;letter-spacing:1px}
+  .go:active{transform:translateY(1px)}
+  .go:disabled{opacity:.4;cursor:wait}
+
+  .status{min-height:18px;color:var(--amber);font-size:12px;margin:14px 2px;text-shadow:none}
+  .status.err{color:var(--warn)}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+  .card{border:1px solid var(--phos-deep);background:var(--panel);padding:12px;display:flex;gap:12px;transition:border-color .15s}
+  .card:hover{border-color:var(--phos-dim)}
+  .cover{width:64px;height:96px;flex:none;background:#06100b;border:1px solid var(--phos-deep);object-fit:cover;display:flex;align-items:center;justify-content:center;color:var(--phos-dim);font-size:28px}
+  .meta{min-width:0}
+  .title{font-weight:700;line-height:1.3;margin-bottom:4px;word-break:break-word}
+  .author{color:var(--phos-dim);font-size:13px;text-shadow:none;word-break:break-word}
+  .year{color:var(--amber);font-size:12px;margin-top:6px;text-shadow:none}
+  a.title{color:var(--phos);text-decoration:none;border-bottom:1px dotted var(--phos-deep)}
+
+  .pager{display:flex;align-items:center;justify-content:space-between;gap:8px;border:1px solid var(--phos-deep);padding:8px 10px;margin:16px 0}
+  .pager button{background:transparent;border:1px solid var(--phos-deep);color:var(--phos);font:inherit;padding:8px 14px;cursor:pointer;text-shadow:none}
+  .pager button:active{transform:translateY(1px)}
+  .pager button:disabled{opacity:.25;cursor:default}
+  #pageInfo{color:var(--amber);text-shadow:none;font-size:13px}
+
+  .empty{color:var(--phos-dim);text-shadow:none;text-align:center;padding:40px 10px;border:1px dashed var(--phos-deep)}
+  footer{margin-top:30px;color:var(--phos-dim);font-size:11px;text-shadow:none;text-align:center}
+  footer a{color:var(--phos-dim)}
+
+  @media(max-width:480px){
+    h1{font-size:14px}
+    .grid{grid-template-columns:1fr}
+    .toggle button{font-size:11px}
+  }
+  @media(prefers-reduced-motion:reduce){
+    body,.wrap,.blink{animation:none!important}
+    body::before{display:none}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>BIBLIO//TERM</h1>
+    <div class="sub">terminale di ricerca libri &middot; archivio Open Library<span class="blink">_</span></div>
+  </header>
+
+  <div class="bar">
+    <div class="toggle" role="tablist" aria-label="Filtro di ricerca">
+      <button id="byTitle" class="on" role="tab" aria-selected="true">&gt; TITOLO</button>
+      <button id="byAuthor" role="tab" aria-selected="false">&gt; AUTORE</button>
+      <button id="byBoth" role="tab" aria-selected="false">&gt; COMBINATA</button>
+    </div>
+    <div id="fields" class="fields">
+      <input id="qTitle" type="search" placeholder="titolo…" autocomplete="off" enterkeyhint="search" aria-label="Titolo">
+      <input id="qAuthor" type="search" placeholder="autore…" autocomplete="off" enterkeyhint="search" aria-label="Autore" style="display:none">
+    </div>
+    <button id="go" class="go">CERCA</button>
+  </div>
+
+  <div id="status" class="status" role="status" aria-live="polite"></div>
+  <div id="results" class="grid"></div>
+
+  <div id="pager" class="pager" hidden>
+    <button id="prev">&#9668; PREC</button>
+    <span id="pageInfo">PAG 1 / 1</span>
+    <button id="next">SUCC &#9658;</button>
+  </div>
+
+  <div id="empty" class="empty">Inserisci un termine e premi CERCA.</div>
+
+  <footer>
+    Dati: <a href="https://openlibrary.org" target="_blank" rel="noopener">openlibrary.org</a> &middot; nessun tracciamento
+  </footer>
+</div>
+
+<script>
+(() => {
+  "use strict";
+  const $ = s => document.querySelector(s);
+  const qT=$("#qTitle"), qA=$("#qAuthor"), goEl=$("#go"),
+        statusEl=$("#status"), resEl=$("#results"), emptyEl=$("#empty"),
+        bT=$("#byTitle"), bA=$("#byAuthor"), bB=$("#byBoth"),
+        pager=$("#pager"), prevB=$("#prev"), nextB=$("#next"), pageInfo=$("#pageInfo");
+
+  const LIMIT = 20;
+  let mode = "title";
+  let page = 1, numFound = 0, lastParams = "";
+
+  function setMode(m){
+    mode = m;
+    bT.classList.toggle("on", m==="title");   bT.setAttribute("aria-selected", m==="title");
+    bA.classList.toggle("on", m==="author");   bA.setAttribute("aria-selected", m==="author");
+    bB.classList.toggle("on", m==="both");     bB.setAttribute("aria-selected", m==="both");
+    qT.style.display = (m==="title"||m==="both") ? "" : "none";
+    qA.style.display = (m==="author"||m==="both") ? "" : "none";
+    (m==="author" ? qA : qT).focus();
+  }
+  bT.onclick=()=>setMode("title");
+  bA.onclick=()=>setMode("author");
+  bB.onclick=()=>setMode("both");
+
+  function setStatus(msg, isErr){
+    statusEl.textContent = msg || "";
+    statusEl.classList.toggle("err", !!isErr);
+  }
+  function esc(s){ return (s||"").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+
+  function buildParams(){
+    const t = qT.value.trim(), a = qA.value.trim();
+    const p = new URLSearchParams();
+    if((mode==="title"||mode==="both") && t) p.set("title", t);
+    if((mode==="author"||mode==="both") && a) p.set("author", a);
+    return p;
+  }
+
+  function card(doc){
+    const title = esc(doc.title || "Senza titolo");
+    const authors = Array.isArray(doc.author_name) ? doc.author_name.join(", ") : "Autore sconosciuto";
+    const year = doc.first_publish_year ? `[ ${doc.first_publish_year} ]` : "";
+    const olid = doc.key ? `https://openlibrary.org${doc.key}` : "#";
+    const cover = doc.cover_i
+      ? `<img class="cover" loading="lazy" alt="copertina" src="https://covers.openlibrary.org/b/id/${doc.cover_i}-M.jpg">`
+      : `<div class="cover">&#9636;</div>`;
+    const el = document.createElement("article");
+    el.className = "card";
+    el.innerHTML = `
+      ${cover}
+      <div class="meta">
+        <a class="title" href="${olid}" target="_blank" rel="noopener">${title}</a>
+        <div class="author">di ${esc(authors)}</div>
+        <div class="year">${year}</div>
+      </div>`;
+    return el;
+  }
+
+  function updatePager(){
+    const pages = Math.max(1, Math.ceil(numFound / LIMIT));
+    pageInfo.textContent = `PAG ${page} / ${pages}`;
+    prevB.disabled = page <= 1;
+    nextB.disabled = page >= pages;
+    pager.hidden = numFound === 0;
+  }
+
+  async function fetchPage(){
+    resEl.innerHTML = "";
+    emptyEl.style.display = "none";
+    pager.hidden = true;
+    goEl.disabled = true;
+    setStatus("> scansione archivio…");
+
+    const p = new URLSearchParams(lastParams);
+    p.set("limit", LIMIT);
+    p.set("page", page);
+    p.set("fields", "key,title,author_name,first_publish_year,cover_i");
+    const url = "https://openlibrary.org/search.json?" + p.toString();
+
+    try{
+      const r = await fetch(url);
+      if(!r.ok) throw new Error("HTTP " + r.status);
+      const data = await r.json();
+      const docs = data.docs || [];
+      numFound = data.numFound ?? docs.length;
+
+      if(!docs.length){
+        emptyEl.textContent = "Nessun risultato.";
+        emptyEl.style.display = "block";
+        setStatus("0 risultati.");
+        numFound = 0; updatePager();
+        return;
+      }
+      const frag = document.createDocumentFragment();
+      docs.forEach(d => frag.appendChild(card(d)));
+      resEl.appendChild(frag);
+      setStatus(`${docs.length} su questa pagina &middot; ${numFound} totali.`);
+      updatePager();
+    }catch(e){
+      setStatus("Errore di connessione all'archivio. Riprova.", true);
+      emptyEl.textContent = "Connessione fallita.";
+      emptyEl.style.display = "block";
+    }finally{
+      goEl.disabled = false;
+    }
+  }
+
+  function newSearch(){
+    const p = buildParams();
+    if(!p.toString()){ setStatus("Inserisci almeno un termine.", true); return; }
+    lastParams = p.toString();
+    page = 1;
+    fetchPage();
+  }
+
+  goEl.onclick = newSearch;
+  [qT, qA].forEach(inp => inp.addEventListener("keydown", e => { if(e.key === "Enter") newSearch(); }));
+
+  prevB.onclick = () => { if(page > 1){ page--; fetchPage(); resEl.scrollIntoView({behavior:"smooth", block:"start"}); } };
+  nextB.onclick = () => { page++; fetchPage(); resEl.scrollIntoView({behavior:"smooth", block:"start"}); };
+
+  /* ---- PWA: manifest + service worker inline (file singolo) ---- */
+  const manifest = {
+    name:"BIBLIO//TERM", short_name:"BiblioTerm",
+    start_url:".", display:"standalone",
+    background_color:"#08110d", theme_color:"#0a1410",
+    icons:[{
+      src:"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' fill='%230a1410'/%3E%3Ctext x='96' y='132' font-size='120' text-anchor='middle' fill='%2354ff9f' font-family='monospace'%3E%E2%96%88%3C/text%3E%3C/svg%3E",
+      sizes:"192x192", type:"image/svg+xml", purpose:"any"
+    }]
+  };
+  const mBlob = new Blob([JSON.stringify(manifest)], {type:"application/manifest+json"});
+  const link = document.createElement("link");
+  link.rel = "manifest"; link.href = URL.createObjectURL(mBlob);
+  document.head.appendChild(link);
+
+  if("serviceWorker" in navigator){
+    const sw = `
+      const C="biblioterm-v1";
+      self.addEventListener("install",e=>{self.skipWaiting();});
+      self.addEventListener("activate",e=>{e.waitUntil(self.clients.claim());});
+      self.addEventListener("fetch",e=>{
+        const u=new URL(e.request.url);
+        if(u.origin===location.origin){
+          e.respondWith(caches.open(C).then(c=>c.match(e.request).then(r=>r||fetch(e.request).then(res=>{c.put(e.request,res.clone());return res;}).catch(()=>r))));
+        }
+      });`;
+    const swUrl = URL.createObjectURL(new Blob([sw], {type:"text/javascript"}));
+    navigator.serviceWorker.register(swUrl).catch(()=>{});
+  }
+
+  qT.focus();
+})();
+</script>
+</body>
+</html>
