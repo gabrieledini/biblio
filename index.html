@@ -244,7 +244,7 @@
       const frag = document.createDocumentFragment();
       items.forEach(it => frag.appendChild(card(it)));
       resEl.appendChild(frag);
-      setStatus(`${items.length} su questa pagina · ~${numFound} totali.`);
+      setStatus(`${items.length} su questa pagina &middot; ~${numFound} totali.`);
       updatePager();
     }catch(e){
       setStatus("Errore di connessione all'archivio. Riprova.", true);
